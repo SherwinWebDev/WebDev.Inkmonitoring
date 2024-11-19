@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Usage - Ink and Toner Monitoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .header {
+            background: #4CAF50;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        .back-button {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #2980b9;
+        }
+        .container {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+        .used-up {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+        <h1>Add Ink/Toner Usage</h1>
+    </div>
+    <div class="container">
+        <form id="usageForm">
+            <div class="form-group">
+                <label for="department">Department:</label>
+                <select id="department" name="department" required>
+                    <option value="">Select Department</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="printerModel">Printer Model:</label>
+                <input type="text" id="printerModel" name="printerModel" readonly>
+            </div>
+            <div class="form-group">
+                <label for="inkToner">Ink/Toner Type:</label>
+                <input type="text" id="inkToner" name="inkToner" readonly>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity Used (pcs):</label>
+                <input type="number" id="quantity" name="quantity" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Add Usage</button>
+            </div>
+        </form>
+        <p id="statusMessage"></p>
+    </div>
+
+    <script>
+        // Load department data from localStorage
+        const departments = JSON.parse(localStorage.getItem("departments")) || [];
+        const usageData = JSON.parse(localStorage.getItem("usageData")) || [];
+
+        // Populate the department dropdown
+        const departmentSelect = document.getElementById("department");
+
+        departments.forEach(department => {
+            const option = document.createElement("option");
+            option.value = department.department;
+            option.textContent = department.department;
+            departmentSelect.appendChild(option);
+        });
+
+        // Event listener for department selection
+        departmentSelect.addEventListener('change', function() {
+            const selectedDepartment = departmentSelect.value;
+            const department = departments.find(dep => dep.department === selectedDepartment);
+            
+            if (department) {
+                // Update printer model and ink/toner fields based on the selected department
+                document.getElementById("printerModel").value = department.printerModel;
+                document.getElementById("inkToner").value = department.inkToner;
+                
+                // Check if the department has already used its allotted quantity
+                const totalUsed = usageData.filter(usage => usage.department === selectedDepartment)
+                    .reduce((total, usage) => total + usage.quantity, 0);
+
+                if (totalUsed >= department.allottedMonthly) {
+                    // If the department has used up the allotted quantity, disable the form
+                    document.getElementById("quantity").disabled = true;
+                    document.querySelector("button[type='submit']").disabled = true;
+                    document.getElementById("statusMessage").textContent = "This department has used up its allotted monthly quantity.";
+                    document.getElementById("statusMessage").classList.add("used-up");
+                } else {
+                    // If the department has not used up the allotted quantity, enable the form
+                    document.getElementById("quantity").disabled = false;
+                    document.querySelector("button[type='submit']").disabled = false;
+                    document.getElementById("statusMessage").textContent = "";
+                    document.getElementById("statusMessage").classList.remove("used-up");
+                }
+            } else {
+                // Clear the fields if no department is selected
+                document.getElementById("printerModel").value = "";
+                document.getElementById("inkToner").value = "";
+                document.getElementById("statusMessage").textContent = "";
+                document.getElementById("statusMessage").classList.remove("used-up");
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('usageForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Get the values from the form
+            const department = document.getElementById('department').value;
+            const printerModel = document.getElementById('printerModel').value;
+            const inkToner = document.getElementById('inkToner').value;
+            const quantityUsed = parseInt(document.getElementById('quantity').value);
+
+            // Validate department selection
+            if (!department || !quantityUsed) {
+                alert("Please select a department and enter a quantity.");
+                return;
+            }
+
+            // Get the current usage data from localStorage
+            const departmentData = departments.find(dep => dep.department === department);
+
+            // Check if the department has enough allowance
+            const totalUsed = usageData.filter(usage => usage.department === department)
+                .reduce((total, usage) => total + usage.quantity, 0);
+
+            if (totalUsed + quantityUsed > departmentData.allottedMonthly) {
+                alert("Cannot exceed the allotted monthly quantity.");
+                return;
+            }
+
+            // Add the new usage record
+            const newUsage = {
+                department: department,
+                printerModel: printerModel,
+                inkToner: inkToner,
+                quantity: quantityUsed,
+                dateRequested: new Date().toLocaleString() // Add the current date/time
+            };
+
+            // Add the new usage to usageData array
+            usageData.push(newUsage);
+
+            // Save the updated usageData back to localStorage
+            localStorage.setItem("usageData", JSON.stringify(usageData));
+
+            // Reset the form
+            document.getElementById('usageForm').reset();
+
+            alert("Usage data added successfully!");
+        });
+    </script>
+</body>
+</html>

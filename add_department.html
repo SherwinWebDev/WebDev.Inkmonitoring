@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Department Master Data</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7fc;
+            color: #333;
+        }
+        .header {
+            background: #4CAF50;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px solid #388e3c;
+        }
+        .container {
+            width: 70%;
+            margin: 30px auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            font-size: 16px;
+            color: #555;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 8px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #4CAF50;
+        }
+        .form-group button {
+            padding: 12px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+        .back-button {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #1976D2;
+        }
+        .form-group button, .back-button {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Add Department Master Data</h1>
+    </div>
+    <div class="container">
+        <form id="departmentForm">
+            <div class="form-group">
+                <label for="department">Department Name:</label>
+                <input type="text" id="department" name="department" required>
+            </div>
+            <div class="form-group">
+                <label for="printerModel">Printer Model:</label>
+                <input type="text" id="printerModel" name="printerModel" required>
+            </div>
+            <div class="form-group">
+                <label for="inkToner">Ink/Toner Type:</label>
+                <input type="text" id="inkToner" name="inkToner" placeholder="e.g., Ink, Toner" required>
+            </div>
+            <div class="form-group">
+                <label for="allottedMonthly">Allotted Monthly (pcs):</label>
+                <input type="number" id="allottedMonthly" name="allottedMonthly" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Add Department</button>
+            </div>
+        </form>
+        <a href="dashboard.html" class="back-button">Back to Dashboard</a>
+    </div>
+
+    <script>
+        // Get the department data from localStorage
+        const departments = JSON.parse(localStorage.getItem("departments")) || [];
+
+        // Handle form submission
+        document.getElementById('departmentForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Get the values from the form
+            const departmentName = document.getElementById('department').value;
+            const printerModel = document.getElementById('printerModel').value;
+            const inkToner = document.getElementById('inkToner').value;
+            const allottedMonthly = parseInt(document.getElementById('allottedMonthly').value);
+
+            // Check if the department already exists
+            const existingDepartment = departments.find(department => department.department === departmentName);
+            if (existingDepartment) {
+                alert("This department already exists.");
+                return;
+            }
+
+            // Add the new department data
+            const newDepartment = {
+                department: departmentName,
+                printerModel: printerModel,
+                inkToner: inkToner,
+                allottedMonthly: allottedMonthly
+            };
+
+            // Add the new department to localStorage
+            departments.push(newDepartment);
+            localStorage.setItem("departments", JSON.stringify(departments));
+
+            // Clear the form
+            document.getElementById('departmentForm').reset();
+
+            alert("Department added successfully!");
+        });
+    </script>
+</body>
+</html>

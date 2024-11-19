@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Ink and Toner Monitoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .header {
+            background: #4CAF50;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .logout-button {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .logout-button:hover {
+            background-color: #c0392b;
+        }
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .actions {
+            margin-bottom: 20px;
+        }
+        .actions button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .actions button:hover {
+            background-color: #45a049;
+        }
+        .delete-button {
+            background-color: #e74c3c;
+        }
+        .delete-button:hover {
+            background-color: #c0392b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        table th {
+            background-color: #f2f2f2;
+        }
+
+        /* Modal Styling */
+        #usageModal {
+            display: none;
+            background: rgba(0, 0, 0, 0.7);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 20px;
+        }
+        #usageModalContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            width: 80%;
+            margin: 0 auto;
+        }
+        #usageModal table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #usageModal th, #usageModal td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ink and Toner Monitoring Dashboard</h1>
+        <button class="logout-button" onclick="logout()">Logout</button>
+    </div>
+    <div class="container">
+        <div class="actions">
+            <button onclick="location.href='add_usage.html'">Add Usage</button>
+            <button onclick="location.href='add_department.html'">Add Department Master Data</button>
+            <button onclick="viewUsage()">View Usage</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Printer Model</th>
+                    <th>Ink/Toner</th>
+                    <th>Allotted Monthly</th>
+                    <th>Used</th>
+                    <th>Remaining</th>
+                    <th>Action</th> <!-- New column for delete button -->
+                </tr>
+            </thead>
+            <tbody id="dashboardTableBody">
+                <!-- Data will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal for Usage Details -->
+    <div id="usageModal">
+        <div id="usageModalContent">
+            <h2>Usage Records</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Department</th>
+                        <th>Printer Model</th>
+                        <th>Ink/Toner</th>
+                        <th>Quantity Used</th>
+                        <th>Date Requested</th>
+                    </tr>
+                </thead>
+                <tbody id="usageModalBody">
+                    <!-- Usage data will be inserted here -->
+                </tbody>
+            </table>
+            <button onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Load department and usage data from localStorage
+        const departments = JSON.parse(localStorage.getItem("departments")) || [];
+        const usageData = JSON.parse(localStorage.getItem("usageData")) || [];
+
+        // Populate the dashboard table
+        const dashboardTableBody = document.getElementById("dashboardTableBody");
+
+        function populateDashboard() {
+            dashboardTableBody.innerHTML = ""; // Clear table
+
+            if (departments.length === 0) {
+                const emptyRow = document.createElement("tr");
+                emptyRow.innerHTML = `<td colspan="7">No departments available</td>`;
+                dashboardTableBody.appendChild(emptyRow);
+                return;
+            }
+
+            departments.forEach(department => {
+                // Calculate total used and remaining
+                const used = usageData
+                    .filter(item => item.department === department.department)
+                    .reduce((total, item) => total + item.quantity, 0);
+
+                const remaining = department.allottedMonthly - used;
+
+                // Add a row for each department
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${department.department}</td>
+                    <td>${department.printerModel}</td>
+                    <td>${department.inkToner}</td>
+                    <td>${department.allottedMonthly}</td>
+                    <td>${used}</td>
+                    <td>${remaining >= 0 ? remaining : 0}</td>
+                    <td><button class="delete-button" onclick="deleteDepartment('${department.department}')">Delete</button></td> <!-- Delete button -->
+                `;
+                dashboardTableBody.appendChild(row);
+            });
+        }
+
+        // Delete the selected department's data
+        function deleteDepartment(departmentName) {
+            if (confirm(`Are you sure you want to delete data for the ${departmentName} department? This action cannot be undone.`)) {
+                // Remove the department from the departments array
+                const updatedDepartments = departments.filter(department => department.department !== departmentName);
+                localStorage.setItem("departments", JSON.stringify(updatedDepartments));
+
+                // Remove associated usage data for the department
+                const updatedUsageData = usageData.filter(item => item.department !== departmentName);
+                localStorage.setItem("usageData", JSON.stringify(updatedUsageData));
+
+                alert(`${departmentName} data deleted successfully.`);
+                location.reload(); // Refresh the page to reflect changes
+            }
+        }
+
+        // View Usage: Show the records in a modal
+        function viewUsage() {
+            const usageModalBody = document.getElementById("usageModalBody");
+            usageModalBody.innerHTML = ""; // Clear modal content
+
+            if (usageData.length === 0) {
+                const emptyRow = document.createElement("tr");
+                emptyRow.innerHTML = `<td colspan="5">No usage records available</td>`;
+                usageModalBody.appendChild(emptyRow);
+            } else {
+                usageData.forEach(record => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${record.department}</td>
+                        <td>${record.printerModel}</td>
+                        <td>${record.inkToner}</td>
+                        <td>${record.quantity}</td>
+                        <td>${record.dateRequested}</td>
+                    `;
+                    usageModalBody.appendChild(row);
+                });
+            }
+
+            // Display the modal
+            document.getElementById("usageModal").style.display = "block";
+        }
+
+        // Close the modal
+        function closeModal() {
+            document.getElementById("usageModal").style.display = "none";
+        }
+
+        // Logout Function
+        function logout() {
+            // Clear session or any stored data (Optional, based on authentication implementation)
+            alert("You have logged out successfully.");
+            window.location.href = 'login.html'; // Redirect to login page
+        }
+
+        // Populate the dashboard on page load
+        populateDashboard();
+    </script>
+</body>
+</html>
